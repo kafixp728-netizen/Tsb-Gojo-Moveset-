@@ -1,0 +1,200 @@
+-- Gojo Satoru Moveset Script for The Strongest Battlegrounds (TSB) Clone / Custom Base
+-- Optimized for mobile executors like Delta
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- // Configurations & Styling
+local COOLDOWNS = {Move1 = 6, Move2 = 8, Move3 = 12, Move4 = 20}
+local activeCooldowns = {}
+
+-- Helper function to generate visual anchors (VFX blocks)
+local function createVFXPart(cf, size, color, material)
+    local part = Instance.new("Part")
+    part.Size = size
+    part.CFrame = cf
+    part.Color = color
+    part.Material = material or Enum.Material.Neon
+    part.Anchored = true
+    part.CanCollide = false
+    part.Parent = workspace
+    return part
+end
+
+-- Helper function for hitbox detection
+local function safeHitbox(cf, size, damage)
+    local region = Region3.new(cf.Position - (size/2), cf.Position + (size/2))
+    local parts = workspace:FindPartsInRegion3WithIgnoreList(region, {character}, 100)
+    
+    for _, part in pairs(parts) do
+        local enemyModel = part.Parent
+        if enemyModel and enemyModel:FindFirstChild("Humanoid") and enemyModel ~= character then
+            local enemyHuman = enemyModel.Humanoid
+            if enemyHuman.Health > 0 then
+                enemyHuman:TakeDamage(damage)
+                -- Apply a slight knockback effect safely
+                local enemyRoot = enemyModel:FindFirstChild("HumanoidRootPart")
+                if enemyRoot then
+                    enemyRoot.CFrame = enemyRoot.CFrame * CFrame.new(0, 0, -4)
+                end
+                break -- Hit one target per activation loop
+            end
+        end
+    end
+end
+
+-- // Move 1: Lapse Blue
+local function lapseBlue()
+    if activeCooldowns.Move1 then return end
+    activeCooldowns.Move1 = true
+    
+    -- Visual anchor for the blue orb
+    local spawnPos = rootPart.CFrame * CFrame.new(0, 0, -4)
+    local blueOrb = createVFXPart(spawnPos, Vector3.new(2, 2, 2), Color3.fromRGB(0, 100, 255), Enum.Material.Glass)
+    blueOrb.Shape = Enum.PartType.Ball
+    
+    -- Animate the orb traveling forward
+    local targetCF = rootPart.CFrame * CFrame.new(0, 0, -35)
+    local tween = TweenService:Create(blueOrb, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCF, Size = Vector3.new(4, 4, 4)})
+    tween:Play()
+    
+    -- Pull enemies closely along the trajectory path
+    task.spawn(function()
+        for i = 1, 12 do
+            safeHitbox(blueOrb.CFrame, Vector3.new(8, 8, 8), 2) -- Pulling damage ticking
+            task.wait(0.05)
+        end
+    end)
+    
+    Debris:AddItem(blueOrb, 0.6)
+    task.delay(COOLDOWNS.Move1, function() activeCooldowns.Move1 = false end)
+end
+
+-- // Move 2: Reversal Red
+local function reversalRed()
+    if activeCooldowns.Move2 then return end
+    activeCooldowns.Move2 = true
+    
+    -- Red charging flare effect
+    local chargePos = rootPart.CFrame * CFrame.new(0, 1, -2)
+    local redOrb = createVFXPart(chargePos, Vector3.new(1, 1, 1), Color3.fromRGB(255, 0, 50))
+    redOrb.Shape = Enum.PartType.Ball
+    
+    -- Charge and release simulation
+    local chargeTween = TweenService:Create(redOrb, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = Vector3.new(3, 3, 3)})
+    chargeTween:Play()
+    task.wait(0.4)
+    
+    -- Fire a powerful blast beam
+    redOrb.Color = Color3.fromRGB(255, 50, 50)
+    local blastCF = rootPart.CFrame * CFrame.new(0, 0, -25)
+    local blastBeam = createVFXPart(rootPart.CFrame * CFrame.new(0, 0, -12.5), Vector3.new(3, 3, 25), Color3.fromRGB(255, 0, 0))
+    
+    -- Apply high damage and severe knockback
+    safeHitbox(blastBeam.CFrame, Vector3.new(6, 6, 25), 25)
+    
+    Debris:AddItem(redOrb, 0.1)
+    Debris:AddItem(blastBeam, 0.3)
+    task.delay(COOLDOWNS.Move2, function() activeCooldowns.Move2 = false end)
+end
+
+-- // Move 3: Hollow Purple
+local function hollowPurple()
+    if activeCooldowns.Move3 then return end
+    activeCooldowns.Move3 = true
+    
+    -- Build the combination singularity visual
+    local leftPos = rootPart.CFrame * CFrame.new(-3, 2, -3)
+    local rightPos = rootPart.CFrame * CFrame.new(3, 2, -3)
+    
+    local blueNode = createVFXPart(leftPos, Vector3.new(1.5, 1.5, 1.5), Color3.fromRGB(0, 0, 255))
+    local redNode = createVFXPart(rightPos, Vector3.new(1.5, 1.5, 1.5), Color3.fromRGB(255, 0, 0))
+    
+    task.wait(0.5)
+    
+    -- Merge into Purple
+    local centerPos = rootPart.CFrame * CFrame.new(0, 2, -4)
+    TweenService:Create(blueNode, TweenInfo.new(0.3), {CFrame = centerPos}):Play()
+    TweenService:Create(redNode, TweenInfo.new(0.3), {CFrame = centerPos}):Play()
+    task.wait(0.3)
+    
+    blueNode:Destroy()
+    redNode:Destroy()
+    
+    -- Launch the devastating Purple mass
+    local purpleOrb = createVFXPart(centerPos, Vector3.new(5, 5, 5), Color3.fromRGB(150, 0, 255), Enum.Material.Neon)
+    purpleOrb.Shape = Enum.PartType.Ball
+    
+    local finalDest = rootPart.CFrame * CFrame.new(0, 0, -60)
+    local travel = TweenService:Create(purpleOrb, TweenInfo.new(1.2, Enum.EasingStyle.Linear), {CFrame = finalDest, Size = Vector3.new(12, 12, 12)})
+    travel:Play()
+    
+    -- Destructive tick-based path damage checking
+    local loopCount = 0
+    while loopCount < 24 do
+        safeHitbox(purpleOrb.CFrame, purpleOrb.Size * 1.2, 3)
+        loopCount = loopCount + 1
+        task.wait(0.05)
+    end
+    
+    Debris:AddItem(purpleOrb, 0.1)
+    task.delay(COOLDOWNS.Move3, function() activeCooldowns.Move3 = false end)
+end
+
+-- // Move 4: Infinite Void (Domain Expansion)
+local function infiniteVoid()
+    if activeCooldowns.Move4 then return end
+    activeCooldowns.Move4 = true
+    
+    -- Expand dark domain barriers outward
+    local domainCenter = rootPart.CFrame
+    local domainShell = createVFXPart(domainCenter, Vector3.new(5, 5, 5), Color3.fromRGB(15, 15, 25), Enum.Material.Glass)
+    domainShell.Shape = Enum.PartType.Ball
+    domainShell.Transparency = 0.4
+    
+    local expand = TweenService:Create(domainShell, TweenInfo.new(1, Enum.EasingStyle.QuadOut), {Size = Vector3.new(70, 70, 70)})
+    expand:Play()
+    
+    -- Paralyze/Freeze caught opponents in place instantly
+    task.spawn(function()
+        local duration = 4
+        local startTime = os.time()
+        while os.time() - startTime < duration do
+            safeHitbox(domainCenter, Vector3.new(65, 65, 65), 5)
+            task.wait(0.8)
+        end
+    end)
+    
+    task.wait(4)
+    
+    -- Shatter the boundary
+    local shrink = TweenService:Create(domainShell, TweenInfo.new(0.5, Enum.EasingStyle.QuadIn), {Size = Vector3.new(0, 0, 0), Transparency = 1})
+    shrink:Play()
+    
+    Debris:AddItem(domainShell, 0.5)
+    task.delay(COOLDOWNS.Move4, function() activeCooldowns.Move4 = false end)
+end
+
+-- // Keybind Triggers (Desktop & Emulator Input Compatible)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.One then
+        lapseBlue()
+    elseif input.KeyCode == Enum.KeyCode.Two then
+        reversalRed()
+    elseif input.KeyCode == Enum.KeyCode.Three then
+        hollowPurple()
+    elseif input.KeyCode == Enum.KeyCode.Four then
+        infiniteVoid()
+    end
+end)
+
+print("Gojo Moveset successfully configured. Bind keys 1, 2, 3, and 4 to cast skills.")

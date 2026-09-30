@@ -1,0 +1,2 @@
+-- Gojo Move set --
+-One hit only moveset
